@@ -1,0 +1,58 @@
+services:
+  prometheus:
+    image: docker.io/prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+
+  splunk:
+    image: docker.io/splunk/splunk:latest
+    environment: 
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=administrator
+    volumes:
+      - ./bind_monts/splunk-var:/opt/splunk/var
+      - ./bind_monts/splunk-etc:/opt/splunk/etc
+    ports:
+      - 8000:8000
+
+  fluentd:
+    image: docker.io/fluent/fluentd:edge-debian
+    # environment: 
+    #   - PYAPP_LOG_FILE=/pyapp_tmp/pyapp.log
+    volumes:
+      - ./tmp:/pyapp_tmp
+      - ./fluentd.conf:/fluentd/etc/fluent.conf
+
+  pyapp:
+    image: python_app
+    build:
+      context: .
+      dockerfile: ./Dockerfile.python
+    command: python3 /app.py
+    environment: 
+      - PYAPP_LOG_FILE=/pyapp_tmp/pyapp.log
+      - PYAPP_PORT=8080
+    volumes:
+      - ./app.py:/app.py
+      - ./tmp:/pyapp_tmp
+    ports:
+      - 8080:8080
+
+
+  pyclient:
+    image: python_app
+    build:
+      context: .
+      dockerfile: ./Dockerfile.python
+    environment:
+      - PYAPP_HOST=pyapp
+      - PYAPP_PORT=8080
+    volumes:
+      - ./client.py:/client.py
+    command: python3 /client.py
+
+
+# volumes:
+#   splunk-vol:
